@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Threading;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -21,6 +23,7 @@ public partial class NowPlayingViewModel : ObservableObject, IDisposable
     private readonly ILibraryReader _libraryReader;
     private readonly IDispatcherService _dispatcherService;
     private readonly ILogger<NowPlayingViewModel> _logger;
+    private CancellationTokenSource? _refreshCts;
     private bool _isDisposed;
 
     public NowPlayingViewModel(
@@ -50,8 +53,8 @@ public partial class NowPlayingViewModel : ObservableObject, IDisposable
     /// <summary>Dedicated lyrics ViewModel instance for this page.</summary>
     public LyricsPageViewModel LyricsViewModel { get; }
 
-    /// <summary>Projected queue items (Song objects) for display in the Up Next list.</summary>
-    public ObservableCollection<Song> QueueItems { get; } = new();
+    /// <summary>Projected queue items for display in the Up Next list. Carries the exact queue index so playback always targets the right slot.</summary>
+    public ObservableCollection<QueueEntry> QueueItems { get; } = new();
 
     public Song? CurrentTrack => _playbackService.CurrentTrack;
 
@@ -63,27 +66,19 @@ public partial class NowPlayingViewModel : ObservableObject, IDisposable
         _playbackService.TrackChanged -= OnTrackChanged;
         _playbackService.QueueChanged -= OnQueueChanged;
 
+        _refreshCts?.Cancel();
+        _refreshCts?.Dispose();
+        _refreshCts = null;
+
         LyricsViewModel.Dispose();
         GC.SuppressFinalize(this);
     }
 
     [RelayCommand]
-    private async Task JumpToQueueItemAsync(Song? song)
+    private async Task JumpToQueueItemAsync(QueueEntry? entry)
     {
-        if (song == null) return;
-
-        var queue = _playbackService.IsShuffleEnabled
-            ? _playbackService.ShuffledQueue
-            : _playbackService.PlaybackQueue;
-
-        var idx = -1;
-        for (var i = 0; i < queue.Count; i++)
-        {
-            if (queue[i] == song.Id) { idx = i; break; }
-        }
-
-        if (idx >= 0)
-            await _playbackService.PlayQueueItemAsync(idx);
+        if (entry == null) return;
+        await _playbackService.PlayQueueItemAsync(entry.QueueIndex);
     }
 
     private void OnTrackChanged()
@@ -107,6 +102,14 @@ public partial class NowPlayingViewModel : ObservableObject, IDisposable
 
     private async void RefreshQueueItems()
     {
+        // Cancel any in-flight refresh so stale items from a previous call can't
+        // race with this one and produce an interleaved / mis-indexed collection.
+        _refreshCts?.Cancel();
+        _refreshCts?.Dispose();
+        var cts = new CancellationTokenSource();
+        _refreshCts = cts;
+        var ct = cts.Token;
+
         try
         {
             var queue = _playbackService.IsShuffleEnabled
@@ -121,17 +124,27 @@ public partial class NowPlayingViewModel : ObservableObject, IDisposable
                     if (queue[i] == currentId.Value) { startIdx = i; break; }
             }
 
-            QueueItems.Clear();
-
+            // Fetch all songs first, then update the collection in one atomic swap.
+            // This prevents two concurrent refreshes from interleaving their items.
             var limit = Math.Min(queue.Count, startIdx + 50);
+            var entries = new List<QueueEntry>(limit - startIdx);
+
             for (var i = Math.Max(0, startIdx); i < limit; i++)
             {
+                if (ct.IsCancellationRequested) return;
                 var song = await _libraryReader.GetSongByIdAsync(queue[i]).ConfigureAwait(false);
+                if (ct.IsCancellationRequested) return;
                 if (song != null)
-                {
-                    _dispatcherService.TryEnqueue(() => { if (!_isDisposed) QueueItems.Add(song); });
-                }
+                    entries.Add(new QueueEntry(i, song));
             }
+
+            _dispatcherService.TryEnqueue(() =>
+            {
+                if (_isDisposed || ct.IsCancellationRequested) return;
+                QueueItems.Clear();
+                foreach (var e in entries)
+                    QueueItems.Add(e);
+            });
         }
         catch (Exception ex)
         {
@@ -139,3 +152,6 @@ public partial class NowPlayingViewModel : ObservableObject, IDisposable
         }
     }
 }
+
+/// <summary>Pairs a song with its exact index in the playback queue so clicks always target the right slot.</summary>
+public record QueueEntry(int QueueIndex, Song Song);

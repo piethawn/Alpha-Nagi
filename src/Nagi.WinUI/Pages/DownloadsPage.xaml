@@ -8,8 +8,10 @@
     Background="Transparent"
     mc:Ignorable="d">
 
-    <ScrollViewer VerticalScrollBarVisibility="Auto">
-        <StackPanel Padding="24,24,24,40" Spacing="24" MaxWidth="900">
+    <ScrollViewer VerticalScrollBarVisibility="Auto"
+                  HorizontalScrollBarVisibility="Disabled"
+                  HorizontalScrollMode="Disabled">
+        <StackPanel Padding="24,24,24,40" Spacing="24">
 
             <!-- Section 1: URL Downloader -->
             <StackPanel Spacing="8">

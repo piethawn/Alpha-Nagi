@@ -8,7 +8,6 @@ using Microsoft.UI.Xaml.Hosting;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Navigation;
-using Nagi.Core.Models;
 using Nagi.Core.Models.Lyrics;
 using Nagi.WinUI.Helpers;
 using Nagi.WinUI.ViewModels;
@@ -262,7 +261,7 @@ public sealed partial class NowPlayingPage : Page
 
     private async void QueueItem_ItemClick(object sender, ItemClickEventArgs e)
     {
-        if (e.ClickedItem is Song song)
-            await ViewModel.JumpToQueueItemCommand.ExecuteAsync(song);
+        if (e.ClickedItem is QueueEntry entry)
+            await ViewModel.JumpToQueueItemCommand.ExecuteAsync(entry);
     }
 }

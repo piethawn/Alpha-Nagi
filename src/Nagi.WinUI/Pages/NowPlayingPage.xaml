@@ -7,6 +7,7 @@
     xmlns:controls="using:ImageEx"
     xmlns:models="using:Nagi.Core.Models"
     xmlns:core="using:Nagi.Core.Models.Lyrics"
+    xmlns:viewmodels="using:Nagi.WinUI.ViewModels"
     Background="Transparent"
     mc:Ignorable="d">
 
@@ -123,25 +124,25 @@
                         </Style>
                     </ListView.ItemContainerStyle>
                     <ListView.ItemTemplate>
-                        <DataTemplate x:DataType="models:Song">
+                        <DataTemplate x:DataType="viewmodels:QueueEntry">
                             <Grid ColumnSpacing="8">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="32" />
                                     <ColumnDefinition Width="*" />
                                 </Grid.ColumnDefinitions>
                                 <controls:ImageEx Grid.Column="0"
-                                                  Source="{x:Bind AlbumArtUriFromTrack}"
+                                                  Source="{x:Bind Song.AlbumArtUriFromTrack}"
                                                   Width="32" Height="32"
                                                   CornerRadius="4"
                                                   Stretch="UniformToFill"
                                                   IsCacheEnabled="True"
                                                   DecodePixelWidth="64" />
                                 <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
-                                    <TextBlock Text="{x:Bind Title}"
+                                    <TextBlock Text="{x:Bind Song.Title}"
                                                Style="{StaticResource BodyTextBlockStyle}"
                                                TextTrimming="CharacterEllipsis"
                                                MaxLines="1" />
-                                    <TextBlock Text="{x:Bind ArtistName}"
+                                    <TextBlock Text="{x:Bind Song.ArtistName}"
                                                Style="{StaticResource CaptionTextBlockStyle}"
                                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                                TextTrimming="CharacterEllipsis"
