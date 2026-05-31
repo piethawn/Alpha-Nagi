@@ -14,6 +14,7 @@
     xmlns:uiModels="using:Nagi.WinUI.Models"
     xmlns:uihelpers="using:Nagi.WinUI.Helpers"
     xmlns:vm="using:Nagi.WinUI.ViewModels"
+    xmlns:navigation="using:Nagi.WinUI.Navigation"
     mc:Ignorable="d">
 
     <UserControl.Resources>
@@ -371,6 +372,40 @@
                 BackRequested="NavView_BackRequested"
                 SelectionChanged="NavView_SelectionChanged"
                 Background="Transparent">
+
+                <!-- Custom reorderable nav list replaces MenuItems (ItemsRepeater-based in SDK 2.x has no drag support) -->
+                <NavigationView.PaneCustomContent>
+                    <ListView x:Name="NavItemsListView"
+                              SelectionMode="Single"
+                              CanDragItems="True"
+                              CanReorderItems="True"
+                              AllowDrop="True"
+                              ScrollViewer.VerticalScrollMode="Disabled"
+                              ScrollViewer.VerticalScrollBarVisibility="Hidden"
+                              SelectionChanged="NavItemsListView_SelectionChanged"
+                              DragItemsCompleted="NavItemsListView_DragItemsCompleted"
+                              ItemsSource="{x:Bind NavItems}">
+                        <ListView.ItemContainerStyle>
+                            <Style TargetType="ListViewItem" BasedOn="{StaticResource DefaultListViewItemStyle}">
+                                <Setter Property="Padding" Value="16,0,0,0" />
+                                <Setter Property="MinHeight" Value="40" />
+                                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                            </Style>
+                        </ListView.ItemContainerStyle>
+                        <ListView.ItemTemplate>
+                            <DataTemplate x:DataType="navigation:NavigationItemSetting">
+                                <StackPanel Orientation="Horizontal" Spacing="16" VerticalAlignment="Center">
+                                    <FontIcon Glyph="{x:Bind IconGlyph}"
+                                              FontSize="16"
+                                              VerticalAlignment="Center" />
+                                    <TextBlock Text="{x:Bind DisplayName}"
+                                               VerticalAlignment="Center"
+                                               TextTrimming="CharacterEllipsis" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                    </ListView>
+                </NavigationView.PaneCustomContent>
 
                 <Grid>
                     <Frame x:Name="ContentFrame" Padding="12,0,12,0" />

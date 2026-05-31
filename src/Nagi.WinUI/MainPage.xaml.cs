@@ -16,6 +16,7 @@ using Microsoft.UI.Xaml.Media.Animation;
 using Microsoft.UI.Xaml.Navigation;
 using Nagi.Core.Services.Abstractions;
 using Nagi.WinUI.Controls;
+using Nagi.WinUI.Navigation;
 using Nagi.WinUI.Pages;
 using Nagi.WinUI.Resources;
 using Nagi.WinUI.Services.Abstractions;
@@ -90,6 +91,9 @@ public sealed partial class MainPage : UserControl, ICustomTitleBarProvider
 
     private ElementTheme _lastKnownTheme;
 
+    // Guards against re-entrant PopulateNavigationAsync when we save a drag-reorder ourselves.
+    private bool _isSavingNavOrder;
+
     public MainPage()
     {
         ViewModel = App.Services!.GetRequiredService<PlayerViewModel>();
@@ -111,6 +115,9 @@ public sealed partial class MainPage : UserControl, ICustomTitleBarProvider
 
     public PlayerViewModel ViewModel { get; }
     public InsightsViewModel InsightsVm { get; }
+
+    // Bound to the custom reorderable ListView in PaneCustomContent.
+    public System.Collections.ObjectModel.ObservableCollection<Nagi.WinUI.Navigation.NavigationItemSetting> NavItems { get; } = new();
 
     public TitleBar GetAppTitleBarElement()
     {
@@ -169,26 +176,25 @@ public sealed partial class MainPage : UserControl, ICustomTitleBarProvider
         }
     }
 
-    // Synchronizes the NavigationView's selected item with the currently displayed page.
+    // Synchronizes the selected nav item with the currently displayed page.
     private void UpdateNavViewSelection(Type currentPageType)
     {
         _isUpdatingNavViewSelection = true;
 
         if (currentPageType == typeof(SettingsPage))
         {
+            NavItemsListView.SelectedItem = null;
             NavView.SelectedItem = NavView.SettingsItem;
         }
         else
         {
+            NavView.SelectedItem = null;
             var tagToSelect = _pages.FirstOrDefault(p => p.Value == currentPageType).Key;
             if (tagToSelect is null) _detailPageToParentTagMap.TryGetValue(currentPageType, out tagToSelect);
 
-            if (tagToSelect != null)
-                NavView.SelectedItem = NavView.MenuItems
-                    .OfType<NavigationViewItem>()
-                    .FirstOrDefault(menuItem => menuItem.Tag?.ToString() == tagToSelect);
-            else
-                NavView.SelectedItem = null;
+            NavItemsListView.SelectedItem = tagToSelect != null
+                ? NavItems.FirstOrDefault(i => string.Equals(i.Tag, tagToSelect, StringComparison.OrdinalIgnoreCase))
+                : null;
         }
 
         _isUpdatingNavViewSelection = false;
@@ -262,38 +268,26 @@ public sealed partial class MainPage : UserControl, ICustomTitleBarProvider
         visual.Opacity = opacity;
     }
 
-    // Populates the NavigationView with items based on user settings.
+    // Populates the custom nav ListView with items based on user settings.
     private async Task PopulateNavigationAsync()
     {
         var navItems = await _settingsService.GetNavigationItemsAsync();
-        NavView.MenuItems.Clear();
+        NavItems.Clear();
 
         var addedTags = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         foreach (var item in navItems.Where(i => i.IsEnabled))
         {
-            // Normalize the tag to match Resource keys (PascalCase) even if older settings used lowercase.
             var tag = item.Tag;
             if (tag.Length > 0 && char.IsLower(tag[0]))
-            {
                 tag = char.ToUpper(tag[0]) + tag.Substring(1);
-            }
 
-            // Deduplicate to ensure no items with the same tag are added multiple times
             if (!addedTags.Add(tag)) continue;
 
-            var navViewItem = new NavigationViewItem
-            {
-                Content = Strings.GetString($"NavItem_{tag}"),
-                Tag = tag,
-                Icon = new FontIcon { Glyph = item.IconGlyph }
-            };
-
-            if (!string.IsNullOrEmpty(item.IconFontFamily))
-                if (navViewItem.Icon is FontIcon icon)
-                    icon.FontFamily = new FontFamily(item.IconFontFamily);
-
-            NavView.MenuItems.Add(navViewItem);
+            // Keep DisplayName in sync with current locale strings.
+            item.DisplayName = Strings.GetString($"NavItem_{tag}");
+            item.Tag = tag;
+            NavItems.Add(item);
         }
     }
 
@@ -329,10 +323,8 @@ public sealed partial class MainPage : UserControl, ICustomTitleBarProvider
             // 3. Post-initialization UI synchronization.
             _isPlayerAnimationEnabled = await animTask;
 
-            if (NavView.MenuItems.Any() && NavView.SelectedItem == null)
-            {
-                NavView.SelectedItem = NavView.MenuItems.First();
-            }
+            if (NavItems.Any() && NavItemsListView.SelectedItem == null)
+                NavItemsListView.SelectedItem = NavItems.First();
 
             UpdateNavViewSelection(ContentFrame.CurrentSourcePageType);
 
@@ -433,15 +425,19 @@ public sealed partial class MainPage : UserControl, ICustomTitleBarProvider
     // Repopulates the navigation view when its settings change.
     private void OnNavigationSettingsChanged()
     {
-        // Use EnqueueAsync for async lambdas. Fire-and-forget is acceptable
-        // for this background UI update. The discard `_ =` signifies this intent.
+        if (_isSavingNavOrder) return; // Our own drag-save fired this — NavItems already has the right order.
+
         _ = _dispatcherService.EnqueueAsync(async () =>
         {
             if (_isUnloaded) return;
 
             _isUpdatingNavViewSelection = true;
             await PopulateNavigationAsync();
-            if (ContentFrame.CurrentSourcePageType == typeof(SettingsPage)) NavView.SelectedItem = NavView.SettingsItem;
+            var currentPage = ContentFrame.CurrentSourcePageType;
+            if (currentPage == typeof(SettingsPage))
+                NavView.SelectedItem = NavView.SettingsItem;
+            else
+                UpdateNavViewSelection(currentPage);
             _isUpdatingNavViewSelection = false;
         });
     }
@@ -474,13 +470,43 @@ public sealed partial class MainPage : UserControl, ICustomTitleBarProvider
 
     private void NavView_ItemInvoked(NavigationView sender, NavigationViewItemInvokedEventArgs args)
     {
-        HandleNavigation(args.IsSettingsInvoked, args.InvokedItemContainer, args.RecommendedNavigationTransitionInfo);
+        // MenuItems is empty — only the built-in Settings footer item can be invoked here.
+        if (args.IsSettingsInvoked)
+            HandleNavigation(true, null, args.RecommendedNavigationTransitionInfo);
     }
 
     private void NavView_SelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
     {
         if (_isUpdatingNavViewSelection) return;
-        HandleNavigation(args.IsSettingsSelected, args.SelectedItem, args.RecommendedNavigationTransitionInfo);
+        if (args.IsSettingsSelected)
+            HandleNavigation(true, null, args.RecommendedNavigationTransitionInfo);
+    }
+
+    private void NavItemsListView_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_isUpdatingNavViewSelection) return;
+        if (NavItemsListView.SelectedItem is NavigationItemSetting item &&
+            _pages.TryGetValue(item.Tag, out var pageType) &&
+            ContentFrame.CurrentSourcePageType != pageType)
+        {
+            ContentFrame.Navigate(pageType, null, new EntranceNavigationTransitionInfo());
+        }
+    }
+
+    private async void NavItemsListView_DragItemsCompleted(ListViewBase sender, DragItemsCompletedEventArgs args)
+    {
+        if (args.DropResult != Windows.ApplicationModel.DataTransfer.DataPackageOperation.Move) return;
+
+        // NavItems already reflects the new order — the ListView updates the ObservableCollection directly.
+        var enabledInNewOrder = NavItems.ToList();
+        var allItems = await _settingsService.GetNavigationItemsAsync();
+        var disabledItems = allItems.Where(i => !i.IsEnabled).ToList();
+
+        var reordered = enabledInNewOrder.Concat(disabledItems).ToList();
+
+        _isSavingNavOrder = true;
+        await _settingsService.SetNavigationItemsAsync(reordered);
+        _isSavingNavOrder = false;
     }
 
     private void NavView_BackRequested(NavigationView sender, NavigationViewBackRequestedEventArgs args)
