@@ -656,6 +656,8 @@ public partial class App : Application
         services.AddSingleton<IAudioPlayer>(provider =>
             new LibVlcAudioPlayerService(provider.GetRequiredService<IDispatcherService>(),
                 provider.GetRequiredService<ILogger<LibVlcAudioPlayerService>>()));
+        services.AddSingleton<IDownloadService, DownloadService>();
+        services.AddSingleton<IHistoryService, HistoryService>();
         services.AddTransient<ITaskbarService>(provider =>
             new TaskbarService(
                 provider.GetRequiredService<ILogger<TaskbarService>>(),
@@ -678,6 +680,8 @@ public partial class App : Application
         services.AddSingleton<AlbumViewModel>();
         services.AddSingleton<GenreViewModel>();
         services.AddSingleton<InsightsViewModel>();
+        services.AddSingleton<DownloadsViewModel>();
+        services.AddSingleton<HistoryViewModel>();
 
         // Detail/Context ViewModels
         services.AddSingleton<SettingsViewModel>();
@@ -689,6 +693,7 @@ public partial class App : Application
         services.AddTransient<AlbumViewViewModel>();
         services.AddTransient<GenreViewViewModel>();
         services.AddTransient<LyricsPageViewModel>();
+        services.AddTransient<NowPlayingViewModel>();
     }
 
     /// <summary>

@@ -29,6 +29,9 @@ public static class Strings
     public static string NavItem_Folders => GetString("NavItem_Folders");
     public static string NavItem_Insights => GetString("NavItem_Insights");
     public static string NavItem_Settings => GetString("NavItem_Settings");
+    public static string NavItem_Downloads => GetString("NavItem_Downloads");
+    public static string NavItem_NowPlaying => GetString("NavItem_NowPlaying");
+    public static string NavItem_History => GetString("NavItem_History");
 
     // App
     public static string App_Title => GetString("App_Title");
@@ -817,4 +820,60 @@ public static class Strings
     public static string Insights_TimeRange_AllTime => GetString("Insights_TimeRange_AllTime");
     public static string Insights_Format_HoursMinutes => GetString("Insights_Format_HoursMinutes");
     public static string Insights_Format_MinutesSeconds => GetString("Insights_Format_MinutesSeconds");
+
+    // Settings nav labels for new pages
+    public static string Settings_Nav_Downloads => GetString("Settings_Nav_Downloads");
+    public static string Settings_Nav_NowPlaying => GetString("Settings_Nav_NowPlaying");
+    public static string Settings_Nav_History => GetString("Settings_Nav_History");
+
+    // Downloads page
+    public static string Downloads_UrlPlaceholder => GetString("Downloads_UrlPlaceholder");
+    public static string Downloads_DownloadButton => GetString("Downloads_DownloadButton");
+    public static string Downloads_SyncButton => GetString("Downloads_SyncButton");
+    public static string Downloads_UrlSection_Title => GetString("Downloads_UrlSection_Title");
+    public static string Downloads_SoundCloud_Title => GetString("Downloads_SoundCloud_Title");
+    public static string Downloads_Queue_Title => GetString("Downloads_Queue_Title");
+    public static string Downloads_Source_YouTube => GetString("Downloads_Source_YouTube");
+    public static string Downloads_Source_SoundCloud => GetString("Downloads_Source_SoundCloud");
+    public static string Downloads_Status_Pending => GetString("Downloads_Status_Pending");
+    public static string Downloads_Status_Downloading => GetString("Downloads_Status_Downloading");
+    public static string Downloads_Status_Complete => GetString("Downloads_Status_Complete");
+    public static string Downloads_Status_Failed => GetString("Downloads_Status_Failed");
+    public static string Downloads_Error_NoMusicFolder => GetString("Downloads_Error_NoMusicFolder");
+    public static string Downloads_Error_EmptyUrl => GetString("Downloads_Error_EmptyUrl");
+    public static string Downloads_Error_MissingCredentials => GetString("Downloads_Error_MissingCredentials");
+
+    // Settings additions
+    public static string Settings_SoundCloud_AuthToken => GetString("Settings_SoundCloud_AuthToken");
+    public static string Settings_SoundCloud_ClientId => GetString("Settings_SoundCloud_ClientId");
+    public static string Settings_SoundCloud_Username => GetString("Settings_SoundCloud_Username");
+    public static string Settings_DjMode_Title => GetString("Settings_DjMode_Title");
+    public static string Settings_DjMode_Subtitle => GetString("Settings_DjMode_Subtitle");
+    public static string Settings_DjMode_TransitionDuration => GetString("Settings_DjMode_TransitionDuration");
+    public static string Settings_DjMode_Seconds => GetString("Settings_DjMode_Seconds");
+    public static string Settings_Section_Playback => GetString("Settings_Section_Playback");
+    public static string Settings_Section_SoundCloud => GetString("Settings_Section_SoundCloud");
+    public static string Settings_Section_Downloads => GetString("Settings_Section_Downloads");
+    public static string Settings_DownloadFolder_Header => GetString("Settings_DownloadFolder_Header");
+    public static string Settings_DownloadFolder_Description => GetString("Settings_DownloadFolder_Description");
+    public static string Settings_DownloadFolder_Placeholder => GetString("Settings_DownloadFolder_Placeholder");
+    public static string Settings_DownloadFolder_Browse => GetString("Settings_DownloadFolder_Browse");
+
+    // History page
+    public static string History_Title => GetString("History_Title");
+    public static string History_SearchPlaceholder => GetString("History_SearchPlaceholder");
+    public static string History_ClearButton => GetString("History_ClearButton");
+    public static string History_ClearConfirmTitle => GetString("History_ClearConfirmTitle");
+    public static string History_ClearConfirmMessage => GetString("History_ClearConfirmMessage");
+    public static string History_ClearConfirmButton => GetString("History_ClearConfirmButton");
+    public static string History_Empty => GetString("History_Empty");
+    public static string History_Time_JustNow => GetString("History_Time_JustNow");
+    public static string History_Time_MinutesAgo => GetString("History_Time_MinutesAgo");
+    public static string History_Time_HoursAgo => GetString("History_Time_HoursAgo");
+    public static string History_Time_Yesterday => GetString("History_Time_Yesterday");
+
+    // Now Playing page
+    public static string NowPlaying_NoLyrics => GetString("NowPlaying_NoLyrics");
+    public static string NowPlaying_UpNext => GetString("NowPlaying_UpNext");
+    public static string NowPlaying_NoTrack => GetString("NowPlaying_NoTrack");
 }

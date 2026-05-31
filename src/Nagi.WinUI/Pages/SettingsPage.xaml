@@ -414,6 +414,42 @@
                     </controls:SettingsExpander.Items>
                 </controls:SettingsExpander>
 
+                <TextBlock Style="{StaticResource SettingsSectionHeaderTextBlockStyle}" Text="{x:Bind resources:Strings.Settings_Section_Playback, Mode=OneTime}" />
+
+                <controls:SettingsExpander
+                    Header="{x:Bind resources:Strings.Settings_DjMode_Title, Mode=OneTime}"
+                    Description="{x:Bind resources:Strings.Settings_DjMode_Subtitle, Mode=OneTime}">
+                    <controls:SettingsExpander.HeaderIcon>
+                        <FontIcon FontFamily="{StaticResource SymbolThemeFontFamily}" Glyph="&#xE9D9;" />
+                    </controls:SettingsExpander.HeaderIcon>
+                    <ToggleSwitch
+                        HorizontalAlignment="Right"
+                        IsOn="{x:Bind ViewModel.IsDjModeEnabled, Mode=TwoWay}" />
+                    <controls:SettingsExpander.Items>
+                        <controls:SettingsCard
+                            Header="{x:Bind resources:Strings.Settings_DjMode_TransitionDuration, Mode=OneTime}"
+                            Visibility="{x:Bind ViewModel.IsDjModeEnabled, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="12">
+                                <Slider
+                                    Width="200"
+                                    VerticalAlignment="Center"
+                                    Minimum="1"
+                                    Maximum="12"
+                                    StepFrequency="1"
+                                    Style="{StaticResource EqualizerSliderStyle}"
+                                    Value="{x:Bind ViewModel.DjModeTransitionSeconds, Mode=TwoWay}" />
+                                <TextBlock
+                                    VerticalAlignment="Center"
+                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                    Style="{ThemeResource CaptionTextBlockStyle}">
+                                    <Run Text="{x:Bind ViewModel.DjModeTransitionSeconds, Mode=OneWay}" />
+                                    <Run Text="{x:Bind resources:Strings.Settings_DjMode_Seconds, Mode=OneTime}" />
+                                </TextBlock>
+                            </StackPanel>
+                        </controls:SettingsCard>
+                    </controls:SettingsExpander.Items>
+                </controls:SettingsExpander>
+
                 <controls:SettingsCard>
                     <controls:SettingsCard.Header>
                         <StackPanel Orientation="Horizontal" Spacing="8">
@@ -1028,6 +1064,62 @@
                     <ToggleSwitch
                         HorizontalAlignment="Right"
                         IsOn="{x:Bind ViewModel.IsDiscordRichPresenceEnabled, Mode=TwoWay}" />
+                </controls:SettingsCard>
+
+                <TextBlock Style="{StaticResource SettingsSectionHeaderTextBlockStyle}" Text="{x:Bind resources:Strings.Settings_Section_SoundCloud, Mode=OneTime}" />
+
+                <controls:SettingsCard
+                    Header="{x:Bind resources:Strings.Settings_SoundCloud_AuthToken, Mode=OneTime}">
+                    <controls:SettingsCard.HeaderIcon>
+                        <FontIcon FontFamily="{StaticResource SymbolThemeFontFamily}" Glyph="&#xE192;" />
+                    </controls:SettingsCard.HeaderIcon>
+                    <PasswordBox
+                        Width="260"
+                        HorizontalAlignment="Right"
+                        Password="{x:Bind ViewModel.SoundCloudAuthToken, Mode=TwoWay}" />
+                </controls:SettingsCard>
+
+                <controls:SettingsCard
+                    Header="{x:Bind resources:Strings.Settings_SoundCloud_ClientId, Mode=OneTime}">
+                    <controls:SettingsCard.HeaderIcon>
+                        <FontIcon FontFamily="{StaticResource SymbolThemeFontFamily}" Glyph="&#xE8D7;" />
+                    </controls:SettingsCard.HeaderIcon>
+                    <PasswordBox
+                        Width="260"
+                        HorizontalAlignment="Right"
+                        Password="{x:Bind ViewModel.SoundCloudClientId, Mode=TwoWay}" />
+                </controls:SettingsCard>
+
+                <controls:SettingsCard
+                    Header="{x:Bind resources:Strings.Settings_SoundCloud_Username, Mode=OneTime}">
+                    <controls:SettingsCard.HeaderIcon>
+                        <FontIcon FontFamily="{StaticResource SymbolThemeFontFamily}" Glyph="&#xE77B;" />
+                    </controls:SettingsCard.HeaderIcon>
+                    <TextBox
+                        Width="260"
+                        HorizontalAlignment="Right"
+                        Text="{x:Bind ViewModel.SoundCloudUsername, Mode=TwoWay}" />
+                </controls:SettingsCard>
+
+                <TextBlock Style="{StaticResource SettingsSectionHeaderTextBlockStyle}" Text="{x:Bind resources:Strings.Settings_Section_Downloads, Mode=OneTime}" />
+
+                <controls:SettingsCard
+                    Header="{x:Bind resources:Strings.Settings_DownloadFolder_Header, Mode=OneTime}"
+                    Description="{x:Bind resources:Strings.Settings_DownloadFolder_Description, Mode=OneTime}">
+                    <controls:SettingsCard.HeaderIcon>
+                        <FontIcon FontFamily="{StaticResource SymbolThemeFontFamily}" Glyph="&#xE896;" />
+                    </controls:SettingsCard.HeaderIcon>
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <TextBox
+                            Width="260"
+                            IsReadOnly="True"
+                            PlaceholderText="{x:Bind resources:Strings.Settings_DownloadFolder_Placeholder, Mode=OneTime}"
+                            Text="{x:Bind ViewModel.DownloadFolderPath, Mode=OneWay}" />
+                        <Button
+                            Content="{x:Bind resources:Strings.Settings_DownloadFolder_Browse, Mode=OneTime}"
+                            Command="{x:Bind ViewModel.BrowseDownloadFolderCommand}"
+                            VerticalAlignment="Center" />
+                    </StackPanel>
                 </controls:SettingsCard>
 
                 <TextBlock Style="{StaticResource SettingsSectionHeaderTextBlockStyle}" Text="{x:Bind resources:Strings.SettingsPage_Section_About, Mode=OneTime}" />

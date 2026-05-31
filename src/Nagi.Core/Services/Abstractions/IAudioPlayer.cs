@@ -57,9 +57,20 @@ public interface IAudioPlayer : IDisposable
     /// </summary>
     event Action? SmtcPreviousButtonPressed;
 
+    /// <summary>
+    ///     Fires when a DJ Mode crossfade has completed and the incoming track is now active.
+    ///     The high-level service should advance the queue pointer in response.
+    /// </summary>
+    event Action? CrossfadeCompleted;
+
     #endregion
 
     #region Properties
+
+    /// <summary>
+    ///     Gets a value indicating whether a DJ Mode crossfade is currently in progress.
+    /// </summary>
+    bool IsCrossfading { get; }
 
     /// <summary>
     ///     Gets a value indicating whether media is currently playing.
@@ -192,6 +203,14 @@ public interface IAudioPlayer : IDisposable
     ///     Sets the duration of the fade-out effect when pausing.
     /// </summary>
     void SetFadeOutDuration(int durationMs);
+
+    /// <summary>
+    ///     Begins a DJ Mode crossfade from the currently playing track to <paramref name="nextSong" />.
+    ///     The incoming track fades in while the outgoing track fades out over
+    ///     <paramref name="transitionSeconds" /> seconds. Fires <see cref="CrossfadeCompleted" />
+    ///     when the transition finishes and the incoming track becomes the active player.
+    /// </summary>
+    Task BeginCrossfadeAsync(Song nextSong, int transitionSeconds);
 
     #endregion
 }

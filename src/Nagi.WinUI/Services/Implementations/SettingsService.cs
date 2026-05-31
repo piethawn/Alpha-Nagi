@@ -74,6 +74,12 @@ public class SettingsService : IUISettingsService, IDisposable
     private const string SongsPerPageKey = "SongsPerPage";
     private const string GenreSplitCharactersKey = "GenreSplitCharacters";
     private const string IgnoreLeadingArticlesOnSortKey = "IgnoreLeadingArticlesOnSort";
+    private const string DjModeEnabledKey = "DjModeEnabled";
+    private const string DjModeTransitionSecondsKey = "DjModeTransitionSeconds";
+    private const string SoundCloudAuthTokenKey = "SoundCloudAuthToken";
+    private const string SoundCloudClientIdKey = "SoundCloudClientId";
+    private const string SoundCloudUsernameKey = "SoundCloudUsername";
+    private const string DownloadFolderPathKey = "DownloadFolderPath";
 
     private static readonly JsonSerializerOptions _serializerOptions = new() { WriteIndented = true };
     private readonly ICredentialLockerService _credentialLockerService;
@@ -124,6 +130,8 @@ public class SettingsService : IUISettingsService, IDisposable
     public event Action<int>? SongsPerPageChanged;
     public event Action? GenreSplitCharactersChanged;
     public event Action<bool>? IgnoreLeadingArticlesOnSortEnabledChanged;
+    public event Action<bool>? DjModeEnabledChanged;
+    public event Action<int>? DjModeTransitionSecondsChanged;
 
     public bool IsTransparencyEffectsEnabled()
     {
@@ -256,13 +264,16 @@ public class SettingsService : IUISettingsService, IDisposable
     {
         return new List<NavigationItemSetting>
         {
+            new() { DisplayName = Resources.Strings.Settings_Nav_NowPlaying, Tag = "NowPlaying", IconGlyph = "\uE7F6", IsEnabled = true },
             new() { DisplayName = Resources.Strings.Settings_Nav_Library, Tag = "Library", IconGlyph = "\uE1D3", IsEnabled = true },
             new() { DisplayName = Resources.Strings.Settings_Nav_Folders, Tag = "Folders", IconGlyph = "\uE8B7", IsEnabled = true },
             new() { DisplayName = Resources.Strings.Settings_Nav_Playlists, Tag = "Playlists", IconGlyph = "\uE90B", IsEnabled = true },
             new() { DisplayName = Resources.Strings.Settings_Nav_Artists, Tag = "Artists", IconGlyph = "\uE77B", IsEnabled = true },
             new() { DisplayName = Resources.Strings.Settings_Nav_Albums, Tag = "Albums", IconGlyph = "\uE93C", IsEnabled = true },
             new() { DisplayName = Resources.Strings.Settings_Nav_Genres, Tag = "Genres", IconGlyph = "\uE8EC", IsEnabled = true },
-            new() { DisplayName = Resources.Strings.Settings_Nav_Insights, Tag = "Insights", IconGlyph = "\uE9D9", IsEnabled = false }
+            new() { DisplayName = Resources.Strings.Settings_Nav_Insights, Tag = "Insights", IconGlyph = "\uE9D9", IsEnabled = false },
+            new() { DisplayName = Resources.Strings.Settings_Nav_History, Tag = "History", IconGlyph = "\uE81C", IsEnabled = true },
+            new() { DisplayName = Resources.Strings.Settings_Nav_Downloads, Tag = "Downloads", IconGlyph = "\uE896", IsEnabled = true }
         };
     }
 
@@ -977,6 +988,9 @@ public class SettingsService : IUISettingsService, IDisposable
             "Albums" => Resources.Strings.Settings_Nav_Albums,
             "Genres" => Resources.Strings.Settings_Nav_Genres,
             "Insights" => Resources.Strings.Settings_Nav_Insights,
+            "NowPlaying" => Resources.Strings.Settings_Nav_NowPlaying,
+            "History" => Resources.Strings.Settings_Nav_History,
+            "Downloads" => Resources.Strings.Settings_Nav_Downloads,
             _ => null
         };
 
@@ -1127,6 +1141,42 @@ public class SettingsService : IUISettingsService, IDisposable
         _logger.LogDebug("FlushAsync: ApplicationData handles persistence automatically.");
         return Task.CompletedTask;
     }
+
+    public Task<bool> GetDjModeEnabledAsync() =>
+        Task.FromResult(GetValue(DjModeEnabledKey, false));
+
+    public Task SetDjModeEnabledAsync(bool isEnabled) =>
+        SetValueAndNotifyAsync(DjModeEnabledKey, isEnabled, false, DjModeEnabledChanged);
+
+    public Task<int> GetDjModeTransitionSecondsAsync() =>
+        Task.FromResult(GetValue(DjModeTransitionSecondsKey, 4));
+
+    public Task SetDjModeTransitionSecondsAsync(int seconds) =>
+        SetValueAndNotifyAsync(DjModeTransitionSecondsKey, Math.Clamp(seconds, 1, 12), 4, DjModeTransitionSecondsChanged);
+
+    public Task<string> GetSoundCloudAuthTokenAsync() =>
+        Task.FromResult(GetValue(SoundCloudAuthTokenKey, string.Empty));
+
+    public Task SetSoundCloudAuthTokenAsync(string token) =>
+        SetValueAsync(SoundCloudAuthTokenKey, token ?? string.Empty);
+
+    public Task<string> GetSoundCloudClientIdAsync() =>
+        Task.FromResult(GetValue(SoundCloudClientIdKey, string.Empty));
+
+    public Task SetSoundCloudClientIdAsync(string clientId) =>
+        SetValueAsync(SoundCloudClientIdKey, clientId ?? string.Empty);
+
+    public Task<string> GetSoundCloudUsernameAsync() =>
+        Task.FromResult(GetValue(SoundCloudUsernameKey, string.Empty));
+
+    public Task SetSoundCloudUsernameAsync(string username) =>
+        SetValueAsync(SoundCloudUsernameKey, username ?? string.Empty);
+
+    public Task<string> GetDownloadFolderPathAsync() =>
+        Task.FromResult(GetValue(DownloadFolderPathKey, string.Empty));
+
+    public Task SetDownloadFolderPathAsync(string path) =>
+        SetValueAsync(DownloadFolderPathKey, path ?? string.Empty);
 
     public void Dispose()
     {

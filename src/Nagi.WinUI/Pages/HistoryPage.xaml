@@ -1,0 +1,86 @@
+<Page
+    x:Class="Nagi.WinUI.Pages.HistoryPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:models="using:Nagi.WinUI.Models"
+    xmlns:controls="using:ImageEx"
+    Background="Transparent"
+    mc:Ignorable="d">
+
+    <Grid RowSpacing="0">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- Toolbar -->
+        <StackPanel Grid.Row="0" Padding="24,16,24,8" Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+            <Button Content="Play"
+                    Visibility="{x:Bind ViewModel.HasSelectedEntry, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
+                    Click="PlaySelected_Click"
+                    VerticalAlignment="Center" />
+            <Button Content="Clear History"
+                    Click="ClearHistory_Click"
+                    VerticalAlignment="Center" />
+        </StackPanel>
+
+        <!-- History List -->
+        <ListView Grid.Row="1"
+                  x:Name="HistoryListView"
+                  ItemsSource="{x:Bind ViewModel.History, Mode=OneWay}"
+                  SelectedItem="{x:Bind ViewModel.SelectedEntry, Mode=TwoWay}"
+                  SelectionMode="Single"
+                  DoubleTapped="ListView_DoubleTapped"
+                  KeyDown="ListView_KeyDown"
+                  Padding="12,0,12,24">
+            <ListView.ItemContainerStyle>
+                <Style TargetType="ListViewItem" BasedOn="{StaticResource DefaultListViewItemStyle}">
+                    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                </Style>
+            </ListView.ItemContainerStyle>
+            <ListView.ItemTemplate>
+                <DataTemplate x:DataType="models:PlayHistoryEntry">
+                    <Grid ColumnSpacing="12" Padding="4,6">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="40" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Album art thumbnail -->
+                        <controls:ImageEx Grid.Column="0"
+                                          Source="{x:Bind AlbumArtUri}"
+                                          Width="40" Height="40"
+                                          CornerRadius="4"
+                                          Stretch="UniformToFill"
+                                          IsCacheEnabled="True"
+                                          DecodePixelWidth="80" />
+
+                        <!-- Title + artist -->
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                            <TextBlock Text="{x:Bind Title}"
+                                       Style="{StaticResource BodyTextBlockStyle}"
+                                       TextTrimming="CharacterEllipsis"
+                                       MaxLines="1" />
+                            <TextBlock Text="{x:Bind ArtistName}"
+                                       Style="{StaticResource CaptionTextBlockStyle}"
+                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                       TextTrimming="CharacterEllipsis"
+                                       MaxLines="1" />
+                        </StackPanel>
+
+                        <!-- Timestamp -->
+                        <TextBlock Grid.Column="2"
+                                   Text="{x:Bind RelativeTime}"
+                                   Style="{StaticResource CaptionTextBlockStyle}"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                   VerticalAlignment="Center" />
+                    </Grid>
+                </DataTemplate>
+            </ListView.ItemTemplate>
+        </ListView>
+
+    </Grid>
+</Page>

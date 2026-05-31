@@ -23,6 +23,9 @@ public class MusicPlaybackService : IMusicPlaybackService, IDisposable
     private bool _isDisposed;
     private bool _isInitialized;
     private bool _isEligibilityMarked;
+    private bool _djModeEnabled;
+    private int _djModeTransitionSeconds = 4;
+    private bool _crossfadeTriggered; // prevents triggering more than once per track
     private List<Guid> _playbackQueue = new();
     private List<Guid> _shuffledQueue = new();
 
@@ -62,11 +65,14 @@ public class MusicPlaybackService : IMusicPlaybackService, IDisposable
         _audioPlayer.DurationChanged += OnAudioPlayerDurationChanged;
         _audioPlayer.SmtcNextButtonPressed += OnAudioPlayerSmtcNextButtonPressed;
         _audioPlayer.SmtcPreviousButtonPressed += OnAudioPlayerSmtcPreviousButtonPressed;
+        _audioPlayer.CrossfadeCompleted += OnAudioPlayerCrossfadeCompleted;
 
         _settingsService.VolumeNormalizationEnabledChanged += OnVolumeNormalizationEnabledChanged;
         _settingsService.FadeOnPlayPauseEnabledChanged += OnFadeOnPlayPauseEnabledChanged;
         _settingsService.FadeInDurationChanged += OnFadeInDurationChanged;
         _settingsService.FadeOutDurationChanged += OnFadeOutDurationChanged;
+        _settingsService.DjModeEnabledChanged += OnDjModeEnabledChanged;
+        _settingsService.DjModeTransitionSecondsChanged += OnDjModeTransitionSecondsChanged;
 
         EqualizerBands = _audioPlayer.GetEqualizerBands();
     }
@@ -138,10 +144,14 @@ public class MusicPlaybackService : IMusicPlaybackService, IDisposable
             var fadeEnabledTask = _settingsService.GetFadeOnPlayPauseEnabledAsync();
             var fadeInTask = _settingsService.GetFadeInDurationMsAsync();
             var fadeOutTask = _settingsService.GetFadeOutDurationMsAsync();
+            var djModeTask = _settingsService.GetDjModeEnabledAsync();
+            var djSecondsTask = _settingsService.GetDjModeTransitionSecondsAsync();
             // Phase 2: Optimistically start reading playback state in parallel
             var playbackStateTask = _settingsService.GetPlaybackStateAsync();
 
-            await Task.WhenAll(volumeTask, muteTask, shuffleTask, repeatTask, eqTask, restoreEnabledTask, fadeEnabledTask, fadeInTask, fadeOutTask, playbackStateTask).ConfigureAwait(false);
+            await Task.WhenAll(volumeTask, muteTask, shuffleTask, repeatTask, eqTask, restoreEnabledTask, fadeEnabledTask, fadeInTask, fadeOutTask, playbackStateTask, djModeTask, djSecondsTask).ConfigureAwait(false);
+            _djModeEnabled = djModeTask.Result;
+            _djModeTransitionSeconds = djSecondsTask.Result;
 
             await _audioPlayer.SetVolumeAsync(volumeTask.Result).ConfigureAwait(false);
             await _audioPlayer.SetMuteAsync(muteTask.Result).ConfigureAwait(false);
@@ -899,6 +909,7 @@ public class MusicPlaybackService : IMusicPlaybackService, IDisposable
         }
 
         _isEligibilityMarked = false;
+        _crossfadeTriggered = false;
 
         IsTransitioningTrack = true;
 
@@ -1180,10 +1191,13 @@ public class MusicPlaybackService : IMusicPlaybackService, IDisposable
         _audioPlayer.DurationChanged -= OnAudioPlayerDurationChanged;
         _audioPlayer.SmtcNextButtonPressed -= OnAudioPlayerSmtcNextButtonPressed;
         _audioPlayer.SmtcPreviousButtonPressed -= OnAudioPlayerSmtcPreviousButtonPressed;
+        _audioPlayer.CrossfadeCompleted -= OnAudioPlayerCrossfadeCompleted;
         _settingsService.VolumeNormalizationEnabledChanged -= OnVolumeNormalizationEnabledChanged;
         _settingsService.FadeOnPlayPauseEnabledChanged -= OnFadeOnPlayPauseEnabledChanged;
         _settingsService.FadeInDurationChanged -= OnFadeInDurationChanged;
         _settingsService.FadeOutDurationChanged -= OnFadeOutDurationChanged;
+        _settingsService.DjModeEnabledChanged -= OnDjModeEnabledChanged;
+        _settingsService.DjModeTransitionSecondsChanged -= OnDjModeTransitionSecondsChanged;
 
         _isDisposed = true;
     }
@@ -1544,6 +1558,30 @@ public class MusicPlaybackService : IMusicPlaybackService, IDisposable
     {
         PositionChanged?.Invoke();
         MaybeMarkEligibleForScrobbling();
+        MaybeTriggerCrossfade();
+    }
+
+    private void MaybeTriggerCrossfade()
+    {
+        if (!_djModeEnabled || _crossfadeTriggered || _audioPlayer.IsCrossfading || CurrentTrack == null)
+            return;
+
+        var remaining = Duration - _audioPlayer.CurrentPosition;
+        if (remaining <= TimeSpan.Zero || remaining.TotalSeconds > _djModeTransitionSeconds)
+            return;
+
+        if (!TryGetNextTrackIndex(true, out var nextIndex)) return;
+
+        _crossfadeTriggered = true;
+
+        FireAndForgetSafe(async () =>
+        {
+            var nextSong = await _libraryService.GetSongByIdAsync(_playbackQueue[nextIndex]).ConfigureAwait(false);
+            if (nextSong == null) return;
+
+            _logger.LogDebug("DJ Mode: starting crossfade to '{Title}' ({Seconds}s)", nextSong.Title, _djModeTransitionSeconds);
+            await _audioPlayer.BeginCrossfadeAsync(nextSong, _djModeTransitionSeconds).ConfigureAwait(false);
+        }, "DJ Mode crossfade trigger");
     }
 
     /// <summary>
@@ -1619,6 +1657,48 @@ public class MusicPlaybackService : IMusicPlaybackService, IDisposable
             async () => await PreviousAsync().ConfigureAwait(false),
             "SMTC Previous");
     }
+
+    private void OnAudioPlayerCrossfadeCompleted()
+    {
+        // Crossfade is done: the audio player already plays the next track.
+        // Advance the queue pointer so the rest of the playback logic stays consistent.
+        FireAndForgetSafe(async () =>
+        {
+            if (!TryGetNextTrackIndex(true, out var nextIndex)) return;
+
+            var nextSong = await _libraryService.GetSongByIdAsync(_playbackQueue[nextIndex]).ConfigureAwait(false);
+            if (nextSong == null) return;
+
+            // Finalize outgoing session
+            if (CurrentListenHistoryId.HasValue)
+            {
+                var sessionId = CurrentListenHistoryId.Value;
+                CurrentListenHistoryId = null;
+                await _libraryService.FinalizeListenSessionAsync(sessionId, Duration, PlaybackEndReason.Finished).ConfigureAwait(false);
+            }
+
+            _isEligibilityMarked = false;
+            _crossfadeTriggered = false;
+
+            CurrentTrack = nextSong;
+            CurrentQueueIndex = nextIndex;
+
+            if (IsShuffleEnabled)
+                CurrentShuffledIndex = GetShuffledQueueIndex(nextSong.Id);
+
+            // Start a new listen session for the incoming track
+            CurrentListenHistoryId = await _libraryService
+                .StartListenSessionAsync(nextSong.Id, _currentContext)
+                .ConfigureAwait(false);
+
+            TrackChanged?.Invoke();
+            UpdateSmtcControls();
+        }, "CrossfadeCompleted queue advance", trackForDisposal: true);
+    }
+
+    private void OnDjModeEnabledChanged(bool isEnabled) => _djModeEnabled = isEnabled;
+
+    private void OnDjModeTransitionSecondsChanged(int seconds) => _djModeTransitionSeconds = seconds;
 
     /// <summary>
     ///     Applies ReplayGain adjustment if volume normalization is enabled and the current track has gain data.

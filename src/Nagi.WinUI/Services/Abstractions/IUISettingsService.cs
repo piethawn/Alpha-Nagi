@@ -370,4 +370,16 @@ public interface IUISettingsService : ISettingsService
     ///     Sets the number of songs to display per page in song lists.
     /// </summary>
     Task SetSongsPerPageAsync(int songsPerPage);
+
+    // SoundCloud credentials
+    Task<string> GetSoundCloudAuthTokenAsync();
+    Task SetSoundCloudAuthTokenAsync(string token);
+    Task<string> GetSoundCloudClientIdAsync();
+    Task SetSoundCloudClientIdAsync(string clientId);
+    Task<string> GetSoundCloudUsernameAsync();
+    Task SetSoundCloudUsernameAsync(string username);
+
+    // Download folder
+    Task<string> GetDownloadFolderPathAsync();
+    Task SetDownloadFolderPathAsync(string path);
 }

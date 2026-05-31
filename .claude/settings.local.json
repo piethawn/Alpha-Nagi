@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/sane/Projects/Alpha-Nagi/**)",
+      "Bash(dotnet build *)"
+    ]
+  }
+}

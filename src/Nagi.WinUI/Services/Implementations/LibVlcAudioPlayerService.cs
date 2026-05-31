@@ -46,6 +46,12 @@ public sealed class LibVlcAudioPlayerService : IAudioPlayer, IDisposable
     private bool _isExplicitStop; // Prevents false PlaybackEnded events on user/error stop
     private double _replayGainOffset; // Separate tracking of ReplayGain adjustment
 
+    // DJ Mode crossfade: secondary player fades in while primary fades out.
+    private MediaPlayer? _crossfadePlayer;
+    private Media? _crossfadeMedia;
+    private volatile bool _isCrossfading;
+    private CancellationTokenSource? _crossfadeCts;
+
     // Default preamp of 10.0f is a safe neutral value within VLC's -20 to +20 dB range.
     // This gets overwritten by Equalizer.Preamp (typically 12.0f) once LibVLC initializes.
     private float _basePreamp = 10.0f;
@@ -171,7 +177,9 @@ public sealed class LibVlcAudioPlayerService : IAudioPlayer, IDisposable
     public event Action? PlaybackEnded, PositionChanged, StateChanged, VolumeChanged, MediaOpened, DurationChanged;
     public event Action<string>? ErrorOccurred;
     public event Action? SmtcNextButtonPressed, SmtcPreviousButtonPressed;
+    public event Action? CrossfadeCompleted;
 
+    public bool IsCrossfading => _isCrossfading;
     public bool IsPlaying => !_isDisposed && _isInitialized && !_isPausing && (_mediaPlayer?.IsPlaying ?? false);
     public TimeSpan CurrentPosition => _isDisposed || !_isInitialized ? TimeSpan.Zero : TimeSpan.FromMilliseconds(Math.Max(0, _mediaPlayer?.Time ?? 0));
     public TimeSpan Duration => _isDisposed || !_isInitialized ? TimeSpan.Zero : TimeSpan.FromMilliseconds(Math.Max(0, _mediaPlayer?.Length ?? 0));
@@ -729,6 +737,148 @@ public sealed class LibVlcAudioPlayerService : IAudioPlayer, IDisposable
         }
     }
 
+    public async Task BeginCrossfadeAsync(Song nextSong, int transitionSeconds)
+    {
+        if (_isDisposed || !_isInitialized || _libVlc is null || _mediaPlayer is null) return;
+        if (_isCrossfading) return;
+
+        // Cancel any prior crossfade that somehow escaped
+        _crossfadeCts?.Cancel();
+        _crossfadeCts?.Dispose();
+        _crossfadeCts = new CancellationTokenSource();
+        var ct = _crossfadeCts.Token;
+
+        _isCrossfading = true;
+
+        // Set before the ramp so that if the outgoing track ends naturally during the
+        // transition window, the Stopped state-change handler doesn't fire PlaybackEnded.
+        _isExplicitStop = true;
+
+        await Task.Run(async () =>
+        {
+            try
+            {
+                // Create and start the incoming player at volume 0
+                var incomingPlayer = new MediaPlayer(_libVlc!);
+                _crossfadePlayer = incomingPlayer;
+
+                var extension = System.IO.Path.GetExtension(nextSong.FilePath);
+                var incomingMedia = new Media(new Uri(nextSong.FilePath));
+                if (!extension.Equals(".opus", StringComparison.OrdinalIgnoreCase) &&
+                    !extension.Equals(".ogg", StringComparison.OrdinalIgnoreCase))
+                {
+                    incomingMedia.AddOption(":demux=avcodec");
+                }
+                _crossfadeMedia = incomingMedia;
+                incomingPlayer.Media = incomingMedia;
+                incomingPlayer.SetVolume(0);
+                incomingPlayer.Play();
+
+                // Wait up to 500ms for the incoming player to reach Playing state before ramping.
+                // Starting the ramp while still Buffering causes the volume to rise against silence.
+                var bufferedMs = 0;
+                while (incomingPlayer.State != VLCState.Playing && !ct.IsCancellationRequested && bufferedMs < 500)
+                {
+                    await Task.Delay(50, ct).ConfigureAwait(false);
+                    bufferedMs += 50;
+                }
+
+                // Ramp volumes over the transition window at ~50ms steps
+                var totalMs = transitionSeconds * 1000;
+                const int stepMs = 50;
+                var steps = Math.Max(1, totalMs / stepMs);
+                var outgoingVolume = (double)(_mediaPlayer?.Volume ?? 100);
+                var targetIncomingVolume = _userVolume * 100.0;
+
+                for (var i = 1; i <= steps; i++)
+                {
+                    if (ct.IsCancellationRequested || _isDisposed) break;
+                    var t = (double)i / steps;
+                    var incoming = (int)Math.Clamp(t * targetIncomingVolume, 0, 100);
+                    var outgoing = (int)Math.Clamp(outgoingVolume * (1.0 - t), 0, 100);
+
+                    incomingPlayer.SetVolume(incoming);
+                    _mediaPlayer?.SetVolume(outgoing);
+
+                    try { await Task.Delay(stepMs, ct).ConfigureAwait(false); }
+                    catch (OperationCanceledException) { break; }
+                }
+
+                if (ct.IsCancellationRequested || _isDisposed) return;
+
+                // Promote: stop old player, swap references
+                var outgoingPlayer = _mediaPlayer!;
+                var outgoingMedia = _currentMedia;
+
+                // Detach event handlers from outgoing player
+                outgoingPlayer.PositionChanged -= OnMediaPlayerPositionChanged;
+                outgoingPlayer.Playing -= OnMediaPlayerStateChanged;
+                outgoingPlayer.Paused -= OnMediaPlayerStateChanged;
+                outgoingPlayer.Stopped -= OnMediaPlayerStateChanged;
+                outgoingPlayer.EncounteredError -= OnMediaPlayerEncounteredError;
+                outgoingPlayer.MediaChanged -= OnMediaPlayerMediaChanged;
+                outgoingPlayer.LengthChanged -= OnMediaPlayerLengthChanged;
+                outgoingPlayer.VolumeChanged -= OnMediaPlayerVolumeChanged;
+                outgoingPlayer.Muted -= OnMediaPlayerMuteChanged;
+                outgoingPlayer.Unmuted -= OnMediaPlayerMuteChanged;
+
+                // Attach event handlers to incoming player
+                incomingPlayer.PositionChanged += OnMediaPlayerPositionChanged;
+                incomingPlayer.Playing += OnMediaPlayerStateChanged;
+                incomingPlayer.Paused += OnMediaPlayerStateChanged;
+                incomingPlayer.Stopped += OnMediaPlayerStateChanged;
+                incomingPlayer.EncounteredError += OnMediaPlayerEncounteredError;
+                incomingPlayer.MediaChanged += OnMediaPlayerMediaChanged;
+                incomingPlayer.LengthChanged += OnMediaPlayerLengthChanged;
+                incomingPlayer.VolumeChanged += OnMediaPlayerVolumeChanged;
+                incomingPlayer.Muted += OnMediaPlayerMuteChanged;
+                incomingPlayer.Unmuted += OnMediaPlayerMuteChanged;
+
+                // Atomically swap
+                _mediaPlayer = incomingPlayer;
+                _currentMedia = _crossfadeMedia;
+                _currentSong = nextSong;
+                _crossfadePlayer = null;
+                _crossfadeMedia = null;
+
+                // Set outgoing to silence, then stop/dispose on background thread
+                outgoingPlayer.SetVolume(0);
+                _ = Task.Run(() =>
+                {
+                    try
+                    {
+                        outgoingPlayer.Stop();
+                        outgoingPlayer.Dispose();
+                    }
+                    catch { /* best-effort */ }
+                    try { outgoingMedia?.Dispose(); }
+                    catch { /* best-effort */ }
+                });
+
+                // Ensure incoming is at full user volume
+                incomingPlayer.SetVolume((int)Math.Clamp(_userVolume * 100, 0, 100));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Crossfade failed.");
+            }
+            finally
+            {
+                _isCrossfading = false;
+                _crossfadeCts?.Dispose();
+                _crossfadeCts = null;
+            }
+        }).ConfigureAwait(false);
+
+        if (!_isDisposed)
+        {
+            _dispatcherService.TryEnqueue(() =>
+            {
+                if (!_isDisposed) CrossfadeCompleted?.Invoke();
+            });
+        }
+    }
+
     public void Dispose()
     {
         if (_isDisposed) return;
@@ -791,6 +941,17 @@ public sealed class LibVlcAudioPlayerService : IAudioPlayer, IDisposable
                     _logger.LogDebug("SMTC already disposed during cleanup.");
                 }
             }
+
+            // Cancel any in-flight crossfade
+            _crossfadeCts?.Cancel();
+            _crossfadeCts?.Dispose();
+            _crossfadeCts = null;
+
+            // Dispose crossfade player if one is active
+            try { _crossfadePlayer?.Stop(); _crossfadePlayer?.Dispose(); } catch { }
+            try { _crossfadeMedia?.Dispose(); } catch { }
+            _crossfadePlayer = null;
+            _crossfadeMedia = null;
 
             // Clean up current media before disposing other components
             if (_currentMedia != null)
@@ -938,10 +1099,10 @@ public sealed class LibVlcAudioPlayerService : IAudioPlayer, IDisposable
 
     private void OnMediaPlayerVolumeChanged(object? sender, MediaPlayerVolumeChangedEventArgs e)
     {
-        if (_isDisposed || _isFading) return;
+        if (_isDisposed || _isFading || _isCrossfading) return;
         _dispatcherService.TryEnqueue(() =>
         {
-            if (_isDisposed || _isFading) return;
+            if (_isDisposed || _isFading || _isCrossfading) return;
             VolumeChanged?.Invoke();
         });
     }

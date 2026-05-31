@@ -232,6 +232,12 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
     [ObservableProperty] public partial bool IsRememberPaneStateEnabled { get; set; }
     [ObservableProperty] public partial bool IsVolumeNormalizationEnabled { get; set; }
     [ObservableProperty] public partial bool IsFadeOnPlayPauseEnabled { get; set; }
+    [ObservableProperty] public partial bool IsDjModeEnabled { get; set; }
+    [ObservableProperty] public partial int DjModeTransitionSeconds { get; set; } = 4;
+    [ObservableProperty] public partial string SoundCloudAuthToken { get; set; } = string.Empty;
+    [ObservableProperty] public partial string SoundCloudClientId { get; set; } = string.Empty;
+    [ObservableProperty] public partial string SoundCloudUsername { get; set; } = string.Empty;
+    [ObservableProperty] public partial string DownloadFolderPath { get; set; } = string.Empty;
     [ObservableProperty] public partial double FadeInDurationMs { get; set; }
     [ObservableProperty] public partial double FadeOutDurationMs { get; set; }
     [ObservableProperty] public partial float EqualizerPreamp { get; set; }
@@ -565,6 +571,13 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
             IsFadeOnPlayPauseEnabled = fadeTask.Result;
             FadeInDurationMs = fadeInTask.Result;
             FadeOutDurationMs = fadeOutTask.Result;
+
+            IsDjModeEnabled = await _settingsService.GetDjModeEnabledAsync();
+            DjModeTransitionSeconds = await _settingsService.GetDjModeTransitionSecondsAsync();
+            SoundCloudAuthToken = await _settingsService.GetSoundCloudAuthTokenAsync();
+            SoundCloudClientId = await _settingsService.GetSoundCloudClientIdAsync();
+            SoundCloudUsername = await _settingsService.GetSoundCloudUsernameAsync();
+            DownloadFolderPath = await _settingsService.GetDownloadFolderPathAsync();
 
             SelectedPlayerBackgroundMaterial = playerMaterialTask.Result;
             PlayerTintIntensity = playerTintTask.Result;
@@ -1926,5 +1939,44 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
 
         await _settingsService.SetPlayerBackgroundMaterialAsync(SettingsDefaults.DefaultPlayerBackgroundMaterial);
         await _settingsService.SetPlayerTintIntensityAsync(SettingsDefaults.DefaultPlayerTintIntensity);
+    }
+
+    async partial void OnIsDjModeEnabledChanged(bool value)
+    {
+        if (_isInitializing) return;
+        await _settingsService.SetDjModeEnabledAsync(value);
+    }
+
+    async partial void OnDjModeTransitionSecondsChanged(int value)
+    {
+        if (_isInitializing) return;
+        await _settingsService.SetDjModeTransitionSecondsAsync(value);
+    }
+
+    async partial void OnSoundCloudAuthTokenChanged(string value)
+    {
+        if (_isInitializing) return;
+        await _settingsService.SetSoundCloudAuthTokenAsync(value);
+    }
+
+    async partial void OnSoundCloudClientIdChanged(string value)
+    {
+        if (_isInitializing) return;
+        await _settingsService.SetSoundCloudClientIdAsync(value);
+    }
+
+    async partial void OnSoundCloudUsernameChanged(string value)
+    {
+        if (_isInitializing) return;
+        await _settingsService.SetSoundCloudUsernameAsync(value);
+    }
+
+    [RelayCommand]
+    private async Task BrowseDownloadFolderAsync()
+    {
+        var folderPath = await _uiService.PickSingleFolderAsync();
+        if (folderPath is null) return;
+        DownloadFolderPath = folderPath;
+        await _settingsService.SetDownloadFolderPathAsync(folderPath);
     }
 }

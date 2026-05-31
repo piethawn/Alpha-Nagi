@@ -396,6 +396,36 @@ public interface ISettingsService
     /// <returns>A list of enabled service providers, sorted by priority.</returns>
     Task<List<ServiceProviderSetting>> GetEnabledServiceProvidersAsync(ServiceCategory category);
     /// <summary>
+    ///     Occurs when the DJ Mode enabled setting is changed.
+    /// </summary>
+    event Action<bool>? DjModeEnabledChanged;
+
+    /// <summary>
+    ///     Occurs when the DJ Mode transition duration is changed.
+    /// </summary>
+    event Action<int>? DjModeTransitionSecondsChanged;
+
+    /// <summary>
+    ///     Gets whether DJ Mode (crossfade) is enabled.
+    /// </summary>
+    Task<bool> GetDjModeEnabledAsync();
+
+    /// <summary>
+    ///     Sets the DJ Mode enabled preference.
+    /// </summary>
+    Task SetDjModeEnabledAsync(bool isEnabled);
+
+    /// <summary>
+    ///     Gets the DJ Mode crossfade transition duration in seconds.
+    /// </summary>
+    Task<int> GetDjModeTransitionSecondsAsync();
+
+    /// <summary>
+    ///     Sets the DJ Mode crossfade transition duration in seconds.
+    /// </summary>
+    Task SetDjModeTransitionSecondsAsync(int seconds);
+
+    /// <summary>
     ///     Ensures all pending settings changes are written to persistent storage.
     /// </summary>
     Task FlushAsync();

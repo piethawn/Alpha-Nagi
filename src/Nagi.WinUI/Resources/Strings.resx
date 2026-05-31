@@ -2159,4 +2159,158 @@ Error: {1}</value>
   <data name="Insights_Format_MinutesSeconds" xml:space="preserve">
     <value>{0}m {1}s</value>
   </data>
+  <!-- Navigation items for new pages -->
+  <data name="NavItem_Downloads" xml:space="preserve">
+    <value>Downloads</value>
+  </data>
+  <data name="NavItem_NowPlaying" xml:space="preserve">
+    <value>Now Playing</value>
+  </data>
+  <data name="NavItem_History" xml:space="preserve">
+    <value>History</value>
+  </data>
+  <data name="Settings_Nav_Downloads" xml:space="preserve">
+    <value>Downloads</value>
+  </data>
+  <data name="Settings_Nav_NowPlaying" xml:space="preserve">
+    <value>Now Playing</value>
+  </data>
+  <data name="Settings_Nav_History" xml:space="preserve">
+    <value>History</value>
+  </data>
+  <!-- Downloads page -->
+  <data name="Downloads_UrlPlaceholder" xml:space="preserve">
+    <value>Paste a YouTube or SoundCloud URL</value>
+  </data>
+  <data name="Downloads_DownloadButton" xml:space="preserve">
+    <value>Download</value>
+  </data>
+  <data name="Downloads_SyncButton" xml:space="preserve">
+    <value>Sync SoundCloud Likes</value>
+  </data>
+  <data name="Downloads_UrlSection_Title" xml:space="preserve">
+    <value>URL Download</value>
+  </data>
+  <data name="Downloads_SoundCloud_Title" xml:space="preserve">
+    <value>SoundCloud Sync</value>
+  </data>
+  <data name="Downloads_Queue_Title" xml:space="preserve">
+    <value>Download Queue</value>
+  </data>
+  <data name="Downloads_Source_YouTube" xml:space="preserve">
+    <value>YouTube</value>
+  </data>
+  <data name="Downloads_Source_SoundCloud" xml:space="preserve">
+    <value>SoundCloud</value>
+  </data>
+  <data name="Downloads_Status_Pending" xml:space="preserve">
+    <value>Pending</value>
+  </data>
+  <data name="Downloads_Status_Downloading" xml:space="preserve">
+    <value>Downloading</value>
+  </data>
+  <data name="Downloads_Status_Complete" xml:space="preserve">
+    <value>Complete</value>
+  </data>
+  <data name="Downloads_Status_Failed" xml:space="preserve">
+    <value>Failed</value>
+  </data>
+  <data name="Downloads_Error_NoMusicFolder" xml:space="preserve">
+    <value>No music folder configured. Add a folder in the Library tab first.</value>
+  </data>
+  <data name="Downloads_Error_EmptyUrl" xml:space="preserve">
+    <value>Please enter a URL.</value>
+  </data>
+  <data name="Downloads_Error_MissingCredentials" xml:space="preserve">
+    <value>SoundCloud credentials are not configured. Add them in Settings.</value>
+  </data>
+  <!-- Settings additions for Downloads and DJ Mode -->
+  <data name="Settings_SoundCloud_AuthToken" xml:space="preserve">
+    <value>Auth Token</value>
+  </data>
+  <data name="Settings_SoundCloud_ClientId" xml:space="preserve">
+    <value>Client ID</value>
+  </data>
+  <data name="Settings_SoundCloud_Username" xml:space="preserve">
+    <value>Username</value>
+  </data>
+  <data name="Settings_DjMode_Title" xml:space="preserve">
+    <value>DJ Mode</value>
+  </data>
+  <data name="Settings_DjMode_Subtitle" xml:space="preserve">
+    <value>Seamless crossfade between tracks</value>
+  </data>
+  <data name="Settings_DjMode_TransitionDuration" xml:space="preserve">
+    <value>Transition duration</value>
+  </data>
+  <data name="Settings_DjMode_Seconds" xml:space="preserve">
+    <value>s</value>
+  </data>
+  <data name="Settings_Section_Playback" xml:space="preserve">
+    <value>Playback</value>
+  </data>
+  <data name="Settings_Section_SoundCloud" xml:space="preserve">
+    <value>SoundCloud</value>
+  </data>
+  <!-- Download folder setting -->
+  <data name="Settings_Section_Downloads" xml:space="preserve">
+    <value>Downloads</value>
+  </data>
+  <data name="Settings_DownloadFolder_Header" xml:space="preserve">
+    <value>Download folder</value>
+  </data>
+  <data name="Settings_DownloadFolder_Description" xml:space="preserve">
+    <value>Where yt-dlp saves downloaded tracks. Falls back to the primary music folder if not set.</value>
+  </data>
+  <data name="Settings_DownloadFolder_Placeholder" xml:space="preserve">
+    <value>Uses primary music folder</value>
+  </data>
+  <data name="Settings_DownloadFolder_Browse" xml:space="preserve">
+    <value>Browse</value>
+  </data>
+
+  <!-- History page -->
+  <data name="History_Title" xml:space="preserve">
+    <value>History</value>
+  </data>
+  <data name="History_SearchPlaceholder" xml:space="preserve">
+    <value>Search history...</value>
+  </data>
+  <data name="History_ClearButton" xml:space="preserve">
+    <value>Clear History</value>
+  </data>
+  <data name="History_ClearConfirmTitle" xml:space="preserve">
+    <value>Clear History</value>
+  </data>
+  <data name="History_ClearConfirmMessage" xml:space="preserve">
+    <value>Are you sure you want to clear your entire play history? This cannot be undone.</value>
+  </data>
+  <data name="History_ClearConfirmButton" xml:space="preserve">
+    <value>Clear</value>
+  </data>
+  <data name="History_Empty" xml:space="preserve">
+    <value>No listening history yet</value>
+  </data>
+  <data name="History_Time_JustNow" xml:space="preserve">
+    <value>Just now</value>
+  </data>
+  <data name="History_Time_MinutesAgo" xml:space="preserve">
+    <value>{0} minutes ago</value>
+  </data>
+  <data name="History_Time_HoursAgo" xml:space="preserve">
+    <value>{0} hours ago</value>
+  </data>
+  <data name="History_Time_Yesterday" xml:space="preserve">
+    <value>Yesterday</value>
+  </data>
+  <!-- Now Playing page -->
+  <data name="NowPlaying_NoLyrics" xml:space="preserve">
+    <value>No lyrics available</value>
+  </data>
+  <data name="NowPlaying_UpNext" xml:space="preserve">
+    <value>Up Next</value>
+  </data>
+  <data name="NowPlaying_NoTrack" xml:space="preserve">
+    <value>Nothing playing</value>
+  </data>
 </root>
