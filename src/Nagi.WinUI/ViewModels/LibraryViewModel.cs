@@ -24,6 +24,15 @@ public partial class LibraryViewModel : SongListViewModelBase
     private bool _hasInitialized;
     private bool _pendingLibraryRefresh;
 
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ViewModeToggleGlyph))]
+    public partial bool IsIconView { get; set; }
+
+    public string ViewModeToggleGlyph => IsIconView ? "" : "";
+
+    [RelayCommand]
+    private void ToggleViewMode() => IsIconView = !IsIconView;
+
     public LibraryViewModel(
         ILibraryService libraryService,
         IPlaylistService playlistService,

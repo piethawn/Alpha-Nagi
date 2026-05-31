@@ -165,6 +165,12 @@
                 </Button>
 
                 <Button Style="{StaticResource SongListViewPageIconButton}"
+                        Command="{x:Bind ViewModel.ToggleViewModeCommand}"
+                        ToolTipService.ToolTip="Toggle view">
+                    <FontIcon FontSize="16" Glyph="{x:Bind ViewModel.ViewModeToggleGlyph, Mode=OneWay}" />
+                </Button>
+
+                <Button Style="{StaticResource SongListViewPageIconButton}"
                         ToolTipService.ToolTip="{x:Bind ViewModel.CurrentSortOrderText, Mode=OneWay}">
                     <Button.Flyout>
                         <MenuFlyout Placement="Bottom">
@@ -210,6 +216,7 @@
             Grid.Row="1"
             Padding="{StaticResource SongListViewPadding}"
             IsItemClickEnabled="True"
+            Visibility="{x:Bind ViewModel.IsIconView, Mode=OneWay, Converter={StaticResource InverseBooleanToVisibilityConverter}}"
             ItemContainerStyle="{StaticResource SongListViewPageListViewItemStyle}"
             ItemsSource="{x:Bind ViewModel.Songs, Mode=OneWay}"
             SelectionChanged="OnListViewSelectionChanged"
@@ -319,6 +326,76 @@
                 </DataTemplate>
             </ListView.ItemTemplate>
         </ListView>
+
+        <!-- Icon / Grid view -->
+        <GridView
+            x:Name="SongsGridView"
+            Grid.Row="1"
+            Padding="{StaticResource SongListViewPadding}"
+            IsItemClickEnabled="True"
+            ItemClick="SongsGridView_ItemClick"
+            ItemContainerStyle="{StaticResource AlbumPageGridViewItemStyle}"
+            ItemsSource="{x:Bind ViewModel.Songs, Mode=OneWay}"
+            SelectionMode="None"
+            Visibility="{x:Bind ViewModel.IsIconView, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <GridView.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <ItemsWrapGrid ItemWidth="200" Orientation="Horizontal" />
+                </ItemsPanelTemplate>
+            </GridView.ItemsPanel>
+            <GridView.ItemTemplate>
+                <DataTemplate x:DataType="models:Song">
+                    <Grid Width="180" Height="220" Margin="8,16,8,16" Background="Transparent">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <Grid Grid.Row="0" Width="{StaticResource HeaderImageSize}" Height="{StaticResource HeaderImageSize}" HorizontalAlignment="Center">
+                            <Border CornerRadius="8"
+                                    Visibility="{x:Bind IsArtworkAvailable, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <controls:ImageEx
+                                    IsCacheEnabled="True"
+                                    Source="{x:Bind AlbumArtUriFromTrack, Mode=OneWay, Converter={StaticResource StringToImageSourceConverter}, FallbackValue={x:Null}}"
+                                    DecodePixelWidth="150"
+                                    DecodePixelType="Logical"
+                                    Stretch="UniformToFill" />
+                            </Border>
+                            <Grid Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                  CornerRadius="8"
+                                  Visibility="{x:Bind IsArtworkAvailable, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
+                                <FontIcon HorizontalAlignment="Center" VerticalAlignment="Center"
+                                          FontSize="48" Glyph="&#xE8D6;" />
+                            </Grid>
+                        </Grid>
+
+                        <TextBlock Grid.Row="1"
+                                   Margin="0,12,0,0"
+                                   HorizontalAlignment="Center"
+                                   FontWeight="SemiBold"
+                                   Text="{x:Bind Title}"
+                                   TextTrimming="CharacterEllipsis"
+                                   TextWrapping="NoWrap" />
+
+                        <TextBlock Grid.Row="2"
+                                   Margin="0,4,0,0"
+                                   HorizontalAlignment="Center"
+                                   Opacity="0.7"
+                                   Style="{ThemeResource CaptionTextBlockStyle}"
+                                   Text="{x:Bind ArtistName}"
+                                   TextTrimming="CharacterEllipsis"
+                                   TextWrapping="NoWrap" />
+                    </Grid>
+                </DataTemplate>
+            </GridView.ItemTemplate>
+            <GridView.Footer>
+                <uicontrols:PaginationControl
+                    ViewModel="{x:Bind ViewModel}"
+                    HorizontalAlignment="Right"
+                    Margin="0,24,24,16" />
+            </GridView.Footer>
+        </GridView>
 
         <!-- Empty State -->
         <StackPanel

@@ -290,4 +290,10 @@ public sealed partial class LibraryPage : Page
             ViewModel.PlaySongCommand.Execute(tappedSong);
         }
     }
+
+    private void SongsGridView_ItemClick(object sender, ItemClickEventArgs e)
+    {
+        if (e.ClickedItem is Song song)
+            ViewModel.PlaySongCommand.Execute(song);
+    }
 }
