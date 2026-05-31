@@ -30,7 +30,8 @@
                                   CornerRadius="8"
                                   Stretch="UniformToFill"
                                   IsCacheEnabled="True"
-                                  DecodePixelWidth="440" />
+                                  DecodePixelWidth="440"
+                                  Visibility="{x:Bind ViewModel.LyricsViewModel.ShowNoLyricsMessage, Mode=OneWay, Converter={StaticResource InverseBooleanToVisibilityConverter}}" />
 
                 <TextBlock x:Name="TrackTitleText"
                            Text="{x:Bind ViewModel.PlayerViewModel.SongTitle, Mode=OneWay}"
@@ -48,13 +49,22 @@
 
             <!-- ─── Center column: Lyrics ─── -->
             <Grid Grid.Column="1">
-                <!-- "No lyrics" placeholder -->
-                <TextBlock Text="No lyrics available"
-                           HorizontalAlignment="Center"
-                           VerticalAlignment="Center"
-                           Style="{StaticResource BodyTextBlockStyle}"
-                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                           Visibility="{x:Bind ViewModel.LyricsViewModel.ShowNoLyricsMessage, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                <!-- No lyrics: large album art fills the empty center space -->
+                <StackPanel HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            Spacing="16"
+                            Visibility="{x:Bind ViewModel.LyricsViewModel.ShowNoLyricsMessage, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <controls:ImageEx Source="{x:Bind ViewModel.PlayerViewModel.AlbumArtUri, Mode=OneWay}"
+                                      Width="360" Height="360"
+                                      CornerRadius="12"
+                                      Stretch="UniformToFill"
+                                      IsCacheEnabled="True"
+                                      DecodePixelWidth="720" />
+                    <TextBlock Text="No lyrics available"
+                               HorizontalAlignment="Center"
+                               Style="{StaticResource BodyTextBlockStyle}"
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                </StackPanel>
 
                 <!-- Timed lyrics scroll -->
                 <ScrollViewer x:Name="LyricsScrollViewer"
